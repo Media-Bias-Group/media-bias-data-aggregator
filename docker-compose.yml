@@ -6,6 +6,6 @@ services:
         container_name: scraper
         image: scraper
         working_dir: /scraper
-        volumes: 
+        volumes:
             - ./scraper:/scraper
         tty: true

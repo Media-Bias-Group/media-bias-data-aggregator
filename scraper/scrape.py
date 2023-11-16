@@ -1,15 +1,12 @@
-from bs4 import BeautifulSoup
-import pandas as pd
-import re
-from tqdm import tqdm
-import requests
 import logging
+import re
+
+import pandas as pd
+import requests
+from bs4 import BeautifulSoup
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
-
-
-import requests
-from bs4 import BeautifulSoup
 
 
 def get_news_website(url):
@@ -26,7 +23,10 @@ def get_news_website(url):
     soup = BeautifulSoup(response.content, "html.parser")
 
     # Find the website link
-    link_element = soup.find("a", attrs={"class": "black-link", "target": "_blank"})
+    link_element = soup.find(
+        "a",
+        attrs={"class": "black-link", "target": "_blank"},
+    )
 
     if link_element:
         website_link = link_element.get("href")
@@ -47,7 +47,7 @@ def scrape_bias_ratings(path_to_file):
             - news_source (str): The name of the news source.
             - news_link (str): The link to the news source's website.
             - bias_rating (str): The media bias rating of the news source.
-            - community_feedback (str): The community feedback score of the news source.
+            - community_feedback (str): The community feedback.
     """
     logging.info("Reading file...")
     with open(path_to_file, "r", encoding="utf-8") as file:
@@ -65,7 +65,9 @@ def scrape_bias_ratings(path_to_file):
         cols = row.find_all("td")
         if cols:
             news_source = cols[0].text.strip()
-            bias_rating = cols[1].find("img").attrs.get("alt", "").split(": ")[-1]
+            bias_rating = (
+                cols[1].find("img").attrs.get("alt", "").split(": ")[-1]
+            )
             link = get_news_website(cols[0].find("a").attrs.get("href", ""))
             community_feedback = re.search(r"\d+/\d+", cols[3].text)
             if community_feedback:
@@ -75,7 +77,13 @@ def scrape_bias_ratings(path_to_file):
             data.append([news_source, link, bias_rating, community_feedback])
 
     return pd.DataFrame(
-        data, columns=["news_source", "news_link", "bias_rating", "community_feedback"]
+        data,
+        columns=[
+            "news_source",
+            "news_link",
+            "bias_rating",
+            "community_feedback",
+        ],
     )
 
 
