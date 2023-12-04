@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO,format="\x1b[32;1m" + "%(message)s (%(filename)s:%(lineno)d)" + "\x1b[0m")
 
 
 def get_news_website(url):
@@ -49,7 +50,7 @@ def scrape_bias_ratings(path_to_file):
             - bias_rating (str): The media bias rating of the news source.
             - community_feedback (str): The community feedback.
     """
-    logging.info("Reading file...")
+    logging.info("Parsing html file...")
     with open(path_to_file, "r", encoding="utf-8") as file:
         contents = file.read()
     soup = BeautifulSoup(contents, "html.parser")
@@ -75,6 +76,7 @@ def scrape_bias_ratings(path_to_file):
             else:
                 community_feedback = None
             data.append([news_source, link, bias_rating, community_feedback])
+        
 
     return pd.DataFrame(
         data,
@@ -86,7 +88,6 @@ def scrape_bias_ratings(path_to_file):
         ],
     )
 
-
-# Call the function and get the DataFrame
-df = scrape_bias_ratings("all_sides_snapshot_15_11_2023.html")
-df.to_csv("./all_sides_snapshot_15_11_2023.csv", index=False)
+if __name__ == "__main__":
+    df = scrape_bias_ratings("data/all_sides_snapshot_15_11_2023.html")
+    df.to_parquet("data/all_sides_snapshot_15_11_2023.parquet", index=False)
