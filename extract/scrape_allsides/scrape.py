@@ -1,4 +1,5 @@
 import logging
+import os
 import re
 
 import pandas as pd
@@ -7,7 +8,10 @@ from bs4 import BeautifulSoup
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO,format="\x1b[32;1m" + "%(message)s (%(filename)s:%(lineno)d)" + "\x1b[0m")
+logging.basicConfig(
+    level=logging.INFO,
+    format="\x1b[32;1m" + "%(message)s (%(filename)s:%(lineno)d)" + "\x1b[0m",
+)
 
 
 def get_news_website(url):
@@ -76,7 +80,6 @@ def scrape_bias_ratings(path_to_file):
             else:
                 community_feedback = None
             data.append([news_source, link, bias_rating, community_feedback])
-        
 
     return pd.DataFrame(
         data,
@@ -88,6 +91,11 @@ def scrape_bias_ratings(path_to_file):
         ],
     )
 
+
 if __name__ == "__main__":
-    df = scrape_bias_ratings("data/all_sides_snapshot_15_11_2023.html")
-    df.to_parquet("data/all_sides_snapshot_15_11_2023.parquet", index=False)
+    if not os.path.exists("data/all_sides_snapshot_15_11_2023.parquet"):
+        df = scrape_bias_ratings("data/all_sides_snapshot_15_11_2023.html")
+        df.to_parquet(
+            "data/all_sides_snapshot_15_11_2023.parquet",
+            index=False,
+        )
