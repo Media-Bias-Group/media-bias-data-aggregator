@@ -2,13 +2,16 @@ import pandas as pd
 from langdetect import detect
 from tqdm import tqdm
 import re
+from src.utils_ import to_parquet
+from nltk.tokenize import sent_tokenize
+import uuid
 
-INPUT_PATH = "data/output/"
-OUTPUT_PATH = "data/tmp/"
+INPUT_PATH = "data/transform/tmp"
+OUTPUT_PATH = "data/transform/tmp"
 tqdm.pandas()
 
 
-def starts_with_lowercase(sentence):
+def _starts_with_lowercase(sentence):
     # Strip leading whitespaces
     trimmed_sentence = sentence.strip()
     if not trimmed_sentence:
@@ -18,7 +21,7 @@ def starts_with_lowercase(sentence):
     return trimmed_sentence[0].islower()
 
 
-def unify_text(text):
+def _unify_text(text):
     """Unify text e.g. remove URLs, lowercase, etc.
 
     Use this method whenever we want to 'unify' text.
@@ -42,7 +45,7 @@ def unify_text(text):
     return text
 
 
-def ends_regularly(sentence):
+def _ends_regularly(sentence):
     # Strip trailing whitespaces
     trimmed_sentence = sentence.rstrip()
 
@@ -75,25 +78,50 @@ def ends_regularly(sentence):
     return trimmed_sentence and trimmed_sentence[-1] in regular_endings
 
 
-def contains_quotation(sentence):
+def _contains_quotation(sentence):
     # Regular expression pattern for matching text within quotation marks
     pattern = r"\".*?\"|'.*?'|[“”]"
     # Search for the pattern in the sentence
     return re.search(pattern, sentence) is not None
 
+def _split_into_sentences(article_text, title):
+    """
+    Splits an article text into sentences.
 
+    Args:
+        article_text (str): The article text to be split.
+
+    Returns:
+        list: The list of sentences.
+    """
+    sentences = [title] + sent_tokenize(article_text)
+
+    def valid_sentence(sent):
+        if sent is None:
+            return False
+        if len(sent) <= 10:
+            return False
+        return True
+
+    sentences = [
+        sentence for sentence in sentences if valid_sentence(sentence)
+    ]
+    return sentences
+
+@to_parquet(f"{OUTPUT_PATH}/sentences.parquet")
 def main():
-    df = pd.read_parquet(f"{INPUT_PATH}sentences.parquet")
+    df = pd.read_parquet(f"{INPUT_PATH}/sentences.parquet")
+
     df = df[df.sentence != ""]
     df = df[~df.sentence.isna()]
     df["approx_len"] = df["sentence"].apply(lambda x: len(x.split(" ")))
     df = df[df.approx_len > 10]
-    df["sentence"] = df["sentence"].progress_apply(unify_text)
-    df = df[~df.sentence.apply(starts_with_lowercase)]
-    df = df[df.sentence.apply(ends_regularly)]
-    df = df[~df.sentence.apply(contains_quotation)]
+    df["sentence"] = df["sentence"].progress_apply(_unify_text)
+    df = df[~df.sentence.apply(_starts_with_lowercase)]
+    df = df[df.sentence.apply(_ends_regularly)]
+    df = df[~df.sentence.apply(_contains_quotation)]
 
-    df.to_parquet(f"{OUTPUT_PATH}sentences.parquet")
+    return df
 
 
 if __name__ == "__main__":

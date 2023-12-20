@@ -6,15 +6,12 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 from tqdm import tqdm
+from src.utils_ import to_parquet
 
-logger = logging.getLogger(__name__)
-logging.basicConfig(
-    level=logging.INFO,
-    format="\x1b[32;1m" + "%(message)s (%(filename)s:%(lineno)d)" + "\x1b[0m",
-)
+INPUT_PATH = "data/raw"
+OUTPUT_PATH = "data/extract/tmp"
 
-
-def get_news_website(url):
+def _get_news_website(url):
     """
     Given a news article URL, returns the website link of the news source.
 
@@ -39,8 +36,8 @@ def get_news_website(url):
     else:
         return None
 
-
-def scrape_bias_ratings(path_to_file):
+@to_parquet(f"{OUTPUT_PATH}/allsides_snapshot.parquet")
+def main():
     """
     Scrapes media bias ratings from a HTML file and returns a pandas DataFrame.
 
@@ -55,7 +52,7 @@ def scrape_bias_ratings(path_to_file):
             - community_feedback (str): The community feedback.
     """
     logging.info("Parsing html file...")
-    with open(path_to_file, "r", encoding="utf-8") as file:
+    with open(f"{INPUT_PATH}/all_sides_snapshot_15_11_2023.html", "r", encoding="utf-8") as file:
         contents = file.read()
     soup = BeautifulSoup(contents, "html.parser")
 
@@ -73,7 +70,7 @@ def scrape_bias_ratings(path_to_file):
             bias_rating = (
                 cols[1].find("img").attrs.get("alt", "").split(": ")[-1]
             )
-            link = get_news_website(cols[0].find("a").attrs.get("href", ""))
+            link = _get_news_website(cols[0].find("a").attrs.get("href", ""))
             community_feedback = re.search(r"\d+/\d+", cols[3].text)
             if community_feedback:
                 community_feedback = community_feedback.group()
@@ -93,9 +90,4 @@ def scrape_bias_ratings(path_to_file):
 
 
 if __name__ == "__main__":
-    if not os.path.exists("data/all_sides_snapshot_15_11_2023.parquet"):
-        df = scrape_bias_ratings("data/all_sides_snapshot_15_11_2023.html")
-        df.to_parquet(
-            "data/all_sides_snapshot_15_11_2023.parquet",
-            index=False,
-        )
+    main()

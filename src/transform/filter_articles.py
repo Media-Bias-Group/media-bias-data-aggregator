@@ -1,22 +1,23 @@
 import pandas as pd
 from langdetect import detect
 from tqdm import tqdm
+from src.utils_ import to_parquet
 
-INPUT_PATH = "data/output/"
-OUTPUT_PATH = "data/tmp/"
+INPUT_PATH = "data/extract/output"
+OUTPUT_PATH = "data/transform/tmp"
 tqdm.pandas()
 
-
+@to_parquet(f"{OUTPUT_PATH}/articles.parquet")
 def main():
-    df = pd.read_parquet(f"{INPUT_PATH}articles.parquet")
+    df = pd.read_parquet(f"{INPUT_PATH}/articles.parquet")
     df = df[df.text != ""]
     df = df[~df.title.isna()]
     df["approx_len"] = df["text"].apply(lambda x: len(x.split(".")))
     df = df[df.approx_len > 2]
     lang_mask = df["text"].progress_apply(lambda x: detect(x) == "en")
     df = df[lang_mask]
-    df.to_parquet(f"{OUTPUT_PATH}articles.parquet")
 
+    return df
 
 if __name__ == "__main__":
     main()

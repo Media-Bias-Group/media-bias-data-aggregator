@@ -8,25 +8,16 @@ import uuid
 import newspaper
 import pandas as pd
 from newspaper import ArticleException
-from nltk.tokenize import sent_tokenize
 from tqdm import tqdm
-
-TMP_PATH = "data/tmp"
-OUTPUT_PATH = "data/output"
-
-
-logger = logging.getLogger(__name__)
-logging.basicConfig(
-    level=logging.CRITICAL,
-    format="\x1b[32;1m" + "%(message)s (%(filename)s:%(lineno)d)" + "\x1b[0m",
-)
+from src.utils_ import to_parquet
 logging.getLogger("newspaper").setLevel(logging.CRITICAL)
-MAX_RETRIES = 5
-RETRY_DELAY = lambda: random.randint(1, 10)
+
+OUTPUT_PATH = "data/extract/output"
+INPUT_PATH = "data/extract/output"
+TMP_PATH = "data/extract/tmp"
 
 
-def scrape_source_articles(outlet_link):
-    print(outlet_link)
+def _scrape_source_articles(outlet_link):
     try:
         source = newspaper.build(outlet_link, memoize_articles=False)
     except:
@@ -55,33 +46,10 @@ def scrape_source_articles(outlet_link):
     return pd.DataFrame(rowlist)
 
 
-def split_into_sentences(article_text, title):
-    """
-    Splits an article text into sentences.
 
-    Args:
-        article_text (str): The article text to be split.
-
-    Returns:
-        list: The list of sentences.
-    """
-    sentences = [title] + sent_tokenize(article_text)
-
-    def valid_sentence(sent):
-        if sent is None:
-            return False
-        if len(sent) <= 10:
-            return False
-        return True
-
-    sentences = [
-        sentence for sentence in sentences if valid_sentence(sentence)
-    ]
-    return sentences
-
-
+@to_parquet(f"{OUTPUT_PATH}/articles.parquet")
 def main():
-    outlets_df = pd.read_parquet(f"{TMP_PATH}/outlets_merged.parquet").sample(
+    outlets_df = pd.read_parquet(f"{INPUT_PATH}/outlets.parquet").sample(
         frac=1
     )
 
@@ -92,7 +60,7 @@ def main():
         ):
             print("Already scraped")
             continue
-        articles_df = scrape_source_articles(
+        articles_df = _scrape_source_articles(
             outlet_link=outlet_row["news_link"],
         )
         if articles_df is None:
@@ -107,41 +75,15 @@ def main():
 
     # merge articles
     article_dataframes = []
-    for data in os.listdir(TMP_PATH):
+    for data in os.listdir(f"{TMP_PATH}"):
         if data.split("_")[0] == "articles":
-            article_dataframes.append(pd.read_parquet(f"{TMP_PATH}/{data}"))
+            article_dataframes.append(
+                pd.read_parquet(f"{TMP_PATH}/{data}")
+            )
 
     articles_df = pd.concat(article_dataframes)
-
-    # split into sentences
-    sentence_dataframes = []
-    for _, article_row in tqdm(articles_df.iterrows()):
-        sentences = split_into_sentences(
-            article_row["text"],
-            article_row["title"],
-        )
-        sentence_ids = [str(uuid.uuid4()) for _ in range(len(sentences))]
-        sentence_dataframes.append(
-            pd.DataFrame(
-                {
-                    "sentence": sentences,
-                    "article_id": [article_row["article_id"]] * len(sentences),
-                    "sentence_id": sentence_ids,
-                },
-            ),
-        )
-
-    sentences_df = pd.concat(sentence_dataframes)
-
-    if not os.path.exists(OUTPUT_PATH):
-        subprocess.run(["mkdir", OUTPUT_PATH])
-
-    outlets_df.to_parquet(f"{OUTPUT_PATH}/outlets.parquet")
-    articles_df.to_parquet(f"{OUTPUT_PATH}/articles.parquet")
-    sentences_df.to_parquet(f"{OUTPUT_PATH}/sentences.parquet")
-
-    # subprocess.run(["rm", "-r", TMP_PATH])
-
+    subprocess.run(["rm", "-r", f"{TMP_PATH}"])
+    return articles_df
 
 if __name__ == "__main__":
     main()
