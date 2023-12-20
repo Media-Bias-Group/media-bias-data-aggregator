@@ -87,9 +87,7 @@ def main():
 
     merged = pd.concat([biased, neutral])
 
-    merged["outlet_id"] = [
-        str(uuid.uuid4()) for _ in range(len(merged))
-    ]
+    merged["outlet_id"] = [str(uuid.uuid4()) for _ in range(len(merged))]
 
     logging.info("Saving...")
     merged.to_parquet("data/tmp/outlets_merged.parquet")

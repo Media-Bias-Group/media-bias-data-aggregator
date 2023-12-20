@@ -48,7 +48,7 @@ def scrape_source_articles(outlet_link):
             )
             if i == 1000:
                 break
-            i+=1
+            i += 1
         except:
             continue
 
@@ -73,16 +73,23 @@ def split_into_sentences(article_text, title):
         if len(sent) <= 10:
             return False
         return True
-    sentences = [sentence for sentence in sentences if valid_sentence(sentence)]
+
+    sentences = [
+        sentence for sentence in sentences if valid_sentence(sentence)
+    ]
     return sentences
 
 
 def main():
-    outlets_df = pd.read_parquet(f"{TMP_PATH}/outlets_merged.parquet").sample(frac=1)
+    outlets_df = pd.read_parquet(f"{TMP_PATH}/outlets_merged.parquet").sample(
+        frac=1
+    )
 
     # scrape articles
     for _, outlet_row in tqdm(outlets_df.iterrows(), total=len(outlets_df)):
-        if os.path.isfile(f"{TMP_PATH}/articles_{outlet_row['uni_source']}.parquet"):
+        if os.path.isfile(
+            f"{TMP_PATH}/articles_{outlet_row['uni_source']}.parquet"
+        ):
             print("Already scraped")
             continue
         articles_df = scrape_source_articles(
@@ -133,7 +140,7 @@ def main():
     articles_df.to_parquet(f"{OUTPUT_PATH}/articles.parquet")
     sentences_df.to_parquet(f"{OUTPUT_PATH}/sentences.parquet")
 
-    #subprocess.run(["rm", "-r", TMP_PATH])
+    # subprocess.run(["rm", "-r", TMP_PATH])
 
 
 if __name__ == "__main__":
