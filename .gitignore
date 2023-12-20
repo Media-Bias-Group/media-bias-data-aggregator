@@ -5,10 +5,11 @@
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
 data/tmp/*
-data/output/*
 # IPython
 profile_default/
 ipython_config.py
+data/transform/*
+data/extract/*
 
 # Remove previous ipynb_checkpoints
 #   git rm -r .ipynb_checkpoints/
