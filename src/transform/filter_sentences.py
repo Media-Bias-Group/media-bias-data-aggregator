@@ -115,6 +115,7 @@ def main():
     df = df[df.sentence != ""]
     df = df[~df.sentence.isna()]
     df["approx_len"] = df["sentence"].apply(lambda x: len(x.split(" ")))
+    df = df[~df.sentence.duplicated()]
     df = df[df.approx_len > 10]
     df["sentence"] = df["sentence"].progress_apply(_unify_text)
     df = df[~df.sentence.apply(_starts_with_lowercase)]
